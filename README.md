@@ -1,13 +1,13 @@
 # FinanceApp Pro
 
-App financeiro com Firebase Authentication, Firestore, PWA, categorias automáticas e sincronização entre PC e celular.
+App financeiro com Firebase Authentication + Firestore, sincronização entre PC e celular e PWA.
 
-## Publicação
-Envie todos os arquivos para o repositório GitHub Pages.
+## Regras do Firestore
+Cole SOMENTE isto em Firestore > Regras:
 
-## Regras Firestore recomendadas
-```
+```javascript
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId}/{document=**} {
@@ -16,3 +16,6 @@ service cloud.firestore {
   }
 }
 ```
+
+## Publicação no GitHub Pages
+Envie todos os arquivos deste ZIP para o repositório `Planilha`, substituindo os antigos.
