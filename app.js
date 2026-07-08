@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut,getRedirectResult(auth).catch(console.error); onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -29,7 +29,7 @@ function totals(list=filtered()){const inc=list.filter(t=>t.type==='income').red
 function byCategory(type){const map={};filtered().filter(t=>t.type===type).forEach(t=>map[t.category]=(map[t.category]||0)+t.amount);return Object.entries(map).sort((a,b)=>b[1]-a[1]);}
 
 function render(){
- if(!user){document.body.innerHTML=`<div class="login"><div class="panel"><h1>FinanceApp Pro</h1><p>Entre com Google para sincronizar seus dados no PC e celular.</p><button class="btn" id="login">Entrar com Google</button></div></div>`;document.getElementById('login').onclick=()=>signInWithPopup(auth,provider);return}
+ if(!user){document.body.innerHTML=`<div class="login"><div class="panel"><h1>FinanceApp Pro</h1><p>Entre com Google para sincronizar seus dados no PC e celular.</p><button class="btn" id="login">Entrar com Google</button></div></div>`;document.getElementById('login').onclick=()=>signInWithRedirect(auth,provider);return}
  const k=localStorage.getItem('finance_month')||monthKey(today()); const t=totals();
  document.body.innerHTML=`<div class="layout"><aside class="side"><div class="brand">💼 FinanceApp</div><div class="nav">${['dashboard','transacoes','relatorios','config'].map(p=>`<button class="${page===p?'active':''}" data-page="${p}">${p==='dashboard'?'Dashboard':p==='transacoes'?'Transações':p==='relatorios'?'Relatórios':'Configurações'}</button>`).join('')}</div></aside><main class="main"><div class="top"><div><h1>${pageTitle()}</h1><input class="search" id="month" type="month" value="${k}"></div><div class="user"><img src="${user.photoURL||''}"><span>${user.displayName||user.email}</span><button class="btn ghost" id="logout">Sair</button></div></div>${content(t)}</main></div>`;
  document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});
