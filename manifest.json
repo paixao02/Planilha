@@ -1,9 +1,9 @@
 {
-  "name": "FinanceApp Pro",
-  "short_name": "FinanceApp",
-  "start_url": "./?v=50",
-  "display": "standalone",
-  "background_color": "#0f0d1c",
-  "theme_color": "#151326",
-  "icons": []
+  "name":"FinanceApp Ultra",
+  "short_name":"FinanceApp",
+  "start_url":"./?v=200",
+  "display":"standalone",
+  "background_color":"#071018",
+  "theme_color":"#071018",
+  "icons":[]
 }
