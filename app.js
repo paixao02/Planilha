@@ -6,7 +6,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBIacWH9WInAHEeh_60jXeX9wLHk1RfpRQ",
   authDomain: "planilha-d6258.firebaseapp.com",
   projectId: "planilha-d6258",
-  storageBucket: "planilha-d6258.firebasestorage.app",
+  storageBucket: "planilha-d6258.appspot.com",
   messagingSenderId: "993391235536",
   appId: "1:993391235536:web:923a9c601cf38b4703a9d5"
 };
