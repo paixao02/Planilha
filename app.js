@@ -3,7 +3,7 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBIacWH9WInAHEeh_60jXeX9wLHk1RfpRQ",
+  apiKey: "AIzaSyD1OsrAZ_DOshpsUNmVAxY7bGab0y8q_5U",
   authDomain: "planilha-d6258.firebaseapp.com",
   projectId: "planilha-d6258",
   storageBucket: "planilha-d6258.appspot.com",
