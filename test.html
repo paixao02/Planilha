@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finance App</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Font Awesome for icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- Chart.js library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Default data (transactions and categories loaded from CSV) -->
+  <script src="default_data.js"></script>
+  <!-- App styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Sidebar navigation -->
+  <nav class="sidebar">
+    <div class="logo">
+      <i class="fa fa-wallet"></i>
+      <span>Finanças</span>
+    </div>
+    <ul class="nav-links">
+      <li class="active" data-section="dashboard"><i class="fa fa-chart-pie"></i><span>Dashboard</span></li>
+      <li data-section="transactions"><i class="fa fa-table-list"></i><span>Transações</span></li>
+      <li data-section="add"><i class="fa fa-plus-circle"></i><span>Adicionar</span></li>
+      <li data-section="report"><i class="fa fa-file-alt"></i><span>Relatório</span></li>
+    </ul>
+  </nav>
+  <!-- Main content -->
+  <div class="main">
+    <div class="topbar">
+      <h1 id="current-month"></h1>
+      <button id="openModalBtn" class="btn-add"><i class="fa fa-plus"></i> Nova transação</button>
+    </div>
+    <!-- Dashboard section -->
+    <section id="dashboard-section" class="section">
+      <div class="cards">
+        <div class="card card-balance">
+          <h3>Saldo atual</h3>
+          <p id="balance-value">R$ 0,00</p>
+        </div>
+        <div class="card card-income">
+          <h3>Receitas</h3>
+          <p id="income-value">R$ 0,00</p>
+        </div>
+        <div class="card card-expense">
+          <h3>Despesas</h3>
+          <p id="expense-value">R$ 0,00</p>
+        </div>
+      </div>
+      <div class="charts">
+        <div class="chart-container">
+          <h3>Despesas por categoria</h3>
+          <canvas id="expensesChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <h3>Receitas por categoria</h3>
+          <canvas id="incomeChart"></canvas>
+        </div>
+      </div>
+    </section>
+    <!-- Transactions list section -->
+    <section id="transactions-section" class="section hidden">
+      <h2>Transações</h2>
+      <table class="transactions-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th>Tipo</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody id="transactions-body"></tbody>
+      </table>
+    </section>
+    <!-- Report section -->
+    <section id="report-section" class="section hidden">
+      <h2>Relatório</h2>
+      <!-- Summary cards for report -->
+      <div class="report-cards">
+        <div class="report-card report-income">
+          <h4>Receitas</h4>
+          <p class="value" id="report-income-value">R$ 0,00</p>
+          <p class="count" id="report-income-count">0 transações</p>
+        </div>
+        <div class="report-card report-expense">
+          <h4>Despesas</h4>
+          <p class="value" id="report-expense-value">R$ 0,00</p>
+          <p class="count" id="report-expense-count">0 transações</p>
+        </div>
+        <div class="report-card report-result">
+          <h4>Resultado</h4>
+          <p class="value" id="report-result-value">R$ 0,00</p>
+        </div>
+      </div>
+      <!-- Tables for report details -->
+      <div class="report-tables">
+        <div class="report-table-container">
+          <h3>Receitas por categoria</h3>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody id="report-income-category-body"></tbody>
+          </table>
+        </div>
+        <div class="report-table-container">
+          <h3>Despesas por categoria</h3>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Qtd</th>
+                <th>Valor</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody id="report-expense-category-body"></tbody>
+          </table>
+        </div>
+        <div class="report-table-container">
+          <h3>Top despesas</h3>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Data</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody id="report-top-expenses-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+  <!-- Modal for adding transactions -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h2>Nova transação</h2>
+      <form id="transaction-form">
+        <label for="date">Data</label>
+        <input type="date" id="date" required>
+        <label for="description">Descrição</label>
+        <input type="text" id="description" placeholder="Ex: Mercado" required>
+        <label for="category">Categoria</label>
+        <!-- Use a datalist to provide available categories -->
+        <input list="category-list" id="category" placeholder="Escolha ou digite" required>
+        <datalist id="category-list"></datalist>
+        <label for="type">Tipo</label>
+        <select id="type" required>
+          <option value="income">Receita</option>
+          <option value="expense">Despesa</option>
+        </select>
+        <label for="amount">Valor (R$)</label>
+        <input type="number" id="amount" step="0.01" min="0" required>
+        <button type="submit" class="btn-save">Salvar</button>
+      </form>
+    </div>
+  </div>
+  <!-- Application script -->
+  <script src="script.js"></script>
+</body>
+</html>
