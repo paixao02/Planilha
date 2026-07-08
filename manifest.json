@@ -1,1 +1,15 @@
-{"name":"Finanças","short_name":"Finanças","start_url":"./","display":"standalone","background_color":"#171522","theme_color":"#6d5dfc","icons":[]}
+{
+  "name": "Minha Planilha Financeira",
+  "short_name": "Planilha",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

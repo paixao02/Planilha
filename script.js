@@ -1,96 +1,24 @@
-const STORAGE_KEY = 'finance_transactions_v2';
-const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const defaultCategories = {
-  income: ['Salário','PIX recebido','Rendimento banco','Aposta lucro','Venda','Presente','Outros recebimentos'],
-  expense: ['Alimentação','Transporte','Moradia','Saúde','Assinaturas','Compras','Lazer','Apostas perdas','Gasolina','Outras despesas']
-};
-const rules = {
-  income: {
-    'salario|salário|pagamento|trabalho': 'Salário',
-    'pix|transferencia recebida|transferência recebida': 'PIX recebido',
-    'rendimento|juros|banco|rend': 'Rendimento banco',
-    'aposta lucro|brx|brxbet|green|lucro': 'Aposta lucro',
-    'venda|vendido': 'Venda'
-  },
-  expense: {
-    'mercado|supermercado|ifood|lanche|burger|comida|restaurante|pizza': 'Alimentação',
-    'uber|99|onibus|ônibus|metro|metrô|taxi|táxi': 'Transporte',
-    'gasolina|combustivel|combustível|posto': 'Gasolina',
-    'aluguel|condominio|condomínio|energia|luz|agua|água|internet': 'Moradia',
-    'farmacia|farmácia|remedio|remédio|consulta|medico|médico': 'Saúde',
-    'netflix|spotify|prime|game pass|assinatura|icloud': 'Assinaturas',
-    'shopee|mercado livre|magazine|amazon|roupa|perfume|malbec|maquiagem|sandalia|sandália': 'Compras',
-    'cinema|shopping|festa|bar|lazer': 'Lazer',
-    'aposta|blackjack|cassino|bet|red': 'Apostas perdas'
-  }
-};
-let txs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-let editingId = null;
-const $ = id => document.getElementById(id);
-const brl = v => Number(v || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const todayIso = () => new Date().toISOString().slice(0,10);
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(txs)); render(); }
-function parts(date){ const [y,m,d] = String(date).split('-').map(Number); return {y,m:m-1,d}; }
-function currentMonthTxs(){ const now = new Date(); return txs.filter(t => { const p = parts(t.date); return p.y === now.getFullYear() && p.m === now.getMonth(); }); }
-function selectedReportTxs(){ return txs.filter(t => { const p = parts(t.date); return p.y == $('reportYear').value && p.m == $('reportMonth').value; }); }
-function detectCategory(description, type){
-  const text = description.toLowerCase();
-  for(const [keys, cat] of Object.entries(rules[type])) if(new RegExp(keys,'i').test(text)) return cat;
-  return type === 'income' ? 'Outros recebimentos' : 'Outras despesas';
-}
-function categoryTotals(list, type){
-  return list.filter(t=>t.type===type).reduce((acc,t)=>{ acc[t.category]=(acc[t.category]||0)+Number(t.amount); return acc; },{});
-}
-function sum(list, type){ return list.filter(t=>t.type===type).reduce((a,t)=>a+Number(t.amount),0); }
-function renderCategoryBox(el, data){
-  const entries = Object.entries(data).sort((a,b)=>b[1]-a[1]);
-  if(!entries.length){ el.className='category-list empty'; el.textContent='Sem dados'; return; }
-  const total = entries.reduce((a,[,v])=>a+v,0);
-  el.className='category-list';
-  el.innerHTML = entries.map(([cat,val])=>`<div class="cat-row"><div><b>${cat}</b><small>${((val/total)*100).toFixed(1).replace('.',',')}%</small></div><strong>${brl(val)}</strong></div>`).join('') + `<div class="cat-row total"><div><b>Total</b><small>100%</small></div><strong>${brl(total)}</strong></div>`;
-}
-function renderDashboard(){
-  const list = currentMonthTxs(), income = sum(list,'income'), expense = sum(list,'expense');
-  const now = new Date(); $('monthTitle').textContent = `${months[now.getMonth()]} ${now.getFullYear()}`;
-  $('incomeTotal').textContent = brl(income); $('expenseTotal').textContent = brl(expense); $('balance').textContent = brl(income-expense); $('txCount').textContent = list.length;
-  renderCategoryBox($('incomeCategories'), categoryTotals(list,'income'));
-  renderCategoryBox($('expenseCategories'), categoryTotals(list,'expense'));
-}
-function renderTransactions(){
-  const q = ($('search').value || '').toLowerCase();
-  const list = txs.filter(t => [t.description,t.category,t.type].join(' ').toLowerCase().includes(q)).sort((a,b)=>b.date.localeCompare(a.date));
-  $('transactionsBody').innerHTML = list.length ? list.map(t=>`<tr><td>${t.date.split('-').reverse().join('/')}</td><td>${t.description}</td><td>${t.category}</td><td class="${t.type}">${t.type==='income'?'Receita':'Despesa'}</td><td class="${t.type}">${brl(t.amount)}</td><td><button onclick="editTx('${t.id}')">Editar</button><button class="danger" onclick="deleteTx('${t.id}')">Apagar</button></td></tr>`).join('') : '<tr><td colspan="6">Nenhuma transação cadastrada.</td></tr>';
-}
-function renderReport(){
-  const list = selectedReportTxs(), income = sum(list,'income'), expense = sum(list,'expense');
-  $('reportIncome').textContent = brl(income); $('reportExpense').textContent = brl(expense); $('reportResult').textContent = brl(income-expense);
-  renderCategoryBox($('reportIncomeCats'), categoryTotals(list,'income'));
-  renderCategoryBox($('reportExpenseCats'), categoryTotals(list,'expense'));
-}
-function refreshCategoryList(){
-  const type = $('type').value;
-  const used = txs.filter(t=>t.type===type).map(t=>t.category);
-  const all = [...new Set([...(defaultCategories[type]||[]), ...used])];
-  $('categoryList').innerHTML = all.map(c=>`<option value="${c}"></option>`).join('');
-}
-function render(){ renderDashboard(); renderTransactions(); renderReport(); refreshCategoryList(); }
-function openModal(tx=null){
-  editingId = tx?.id || null; $('modalTitle').textContent = tx ? 'Editar transação' : 'Nova transação';
-  $('date').value = tx?.date || todayIso(); $('description').value = tx?.description || ''; $('type').value = tx?.type || 'expense'; $('category').value = tx?.category || ''; $('amount').value = tx?.amount || ''; refreshCategoryList(); $('modal').showModal();
-}
-window.editTx = id => openModal(txs.find(t=>t.id===id));
-window.deleteTx = id => { if(confirm('Apagar esta transação?')){ txs = txs.filter(t=>t.id!==id); save(); } };
-function setup(){
-  document.querySelectorAll('.nav[data-page]').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.nav,.page').forEach(e=>e.classList.remove('active')); btn.classList.add('active'); $(btn.dataset.page).classList.add('active');});
-  document.querySelectorAll('[data-open-modal]').forEach(b=>b.onclick=()=>openModal()); $('closeModal').onclick=()=>$('modal').close();
-  months.forEach((m,i)=>$('reportMonth').add(new Option(m,i))); const y = new Date().getFullYear(); for(let i=y-5;i<=y+1;i++) $('reportYear').add(new Option(i,i)); $('reportMonth').value = new Date().getMonth(); $('reportYear').value = y;
-  $('description').oninput = () => { if(!$('category').value || $('category').dataset.auto==='1'){ $('category').value = detectCategory($('description').value,$('type').value); $('category').dataset.auto='1'; } };
-  $('category').oninput = () => $('category').dataset.auto='0'; $('type').onchange = () => { refreshCategoryList(); $('category').value = detectCategory($('description').value,$('type').value); $('category').dataset.auto='1'; };
-  $('txForm').onsubmit = e => { e.preventDefault(); const item = { id: editingId || crypto.randomUUID(), date:$('date').value, description:$('description').value.trim(), category:$('category').value.trim(), type:$('type').value, amount: Number($('amount').value) }; txs = editingId ? txs.map(t=>t.id===editingId?item:t) : [item,...txs]; $('modal').close(); save(); };
-  $('search').oninput = renderTransactions; $('reportMonth').onchange = renderReport; $('reportYear').onchange = renderReport;
-  $('exportCsv').onclick = () => { const rows = [['data','descricao','categoria','tipo','valor'], ...txs.map(t=>[t.date,t.description,t.category,t.type,t.amount])]; const csv = rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(';')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='financas.csv'; a.click(); };
-  $('importCsvBtn').onclick=()=>$('importCsv').click(); $('importCsv').onchange = async e => { const text = await e.target.files[0].text(); const lines = text.split(/\r?\n/).slice(1).filter(Boolean); txs.push(...lines.map(line=>{ const [date,description,category,type,amount]=line.split(';').map(x=>x.replace(/^"|"$/g,'')); return {id:crypto.randomUUID(),date,description,category,type,amount:Number(String(amount).replace(',','.'))}; })); save(); };
-  $('printBtn').onclick = () => print(); $('resetBtn').onclick=()=>{ if(confirm('Apagar todos os dados?')){ txs=[]; save(); }};
-  if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{}); render();
-}
-document.addEventListener('DOMContentLoaded', setup);
+const KEY='finance-app-v3';
+const categories={receita:['Salário','PIX recebido','Freelance','Vendas','Investimentos','Reembolso','Outras receitas'],despesa:['Alimentação','Transporte','Moradia','Saúde','Educação','Lazer','Compras','Assinaturas','Contas','Cartão','Família','Outras despesas']};
+const rules=[['salario|salário|pagamento|ordenado','Salário','receita'],['pix|transferencia recebida|recebi','PIX recebido','receita'],['freela|freelance|serviço|servico','Freelance','receita'],['mercado|supermercado|atacado|carrefour|assai|assaí|bompreço|bompreco|ifood|restaurante|lanche|pizza|padaria|comida|coca','Alimentação','despesa'],['uber|99|ônibus|onibus|gasolina|combustivel|combustível|posto|moto|mecânico|mecanico|embreagem','Transporte','despesa'],['aluguel|condominio|condomínio|casa|energia|celpe|neoenergia|água|agua|internet|wifi','Moradia','despesa'],['farmacia|farmácia|remedio|remédio|consulta|medico|médico|hospital','Saúde','despesa'],['netflix|spotify|prime|disney|game pass|xbox|assinatura','Assinaturas','despesa'],['shopee|mercado livre|amazon|roupa|maquiagem|sandalia|sandália|shopping','Compras','despesa'],['cartao|cartão|fatura','Cartão','despesa'],['cinema|show|festa|jogo|lazer','Lazer','despesa'],['familia|família|namorada|ajuda','Família','despesa']];
+let state=load();let deferredPrompt=null;
+const $=id=>document.getElementById(id);const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{transactions:[],theme:'light'}}catch{return{transactions:[],theme:'light'}}}
+function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+function parseAmount(v){return Number(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0}
+function today(){return new Date().toISOString().slice(0,10)}
+function monthOf(date){return String(date||'').slice(0,7)}
+function addMonths(dateStr,n){const d=new Date(dateStr+'T12:00:00');d.setMonth(d.getMonth()+n);return d.toISOString().slice(0,10)}
+function fillCategories(){const type=$('type').value;$('category').innerHTML=categories[type].map(c=>`<option>${c}</option>`).join('')}
+function guess(){const txt=$('description').value.toLowerCase();for(const [regex,cat,type] of rules){if(new RegExp(regex,'i').test(txt)){if($('type').value!==type){$('type').value=type;fillCategories()}$('category').value=cat;return}}}
+function setTheme(t){state.theme=t;document.documentElement.dataset.theme=t;$('toggleTheme').textContent=t==='dark'?'☀️':'🌙';localStorage.setItem(KEY,JSON.stringify(state))}
+function filtered(){const m=$('monthFilter').value;const q=$('search').value.trim().toLowerCase();return state.transactions.filter(t=>(!m||monthOf(t.date)===m)&&(!q||[t.description,t.category,t.account,t.note,t.type].join(' ').toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id)}
+function totals(list){return list.reduce((a,t)=>{a.count++; if(t.type==='receita')a.income+=t.amount;else a.expense+=t.amount; return a},{income:0,expense:0,count:0})}
+function byCategory(list,type){const obj={};list.filter(t=>t.type===type).forEach(t=>obj[t.category]=(obj[t.category]||0)+t.amount);return Object.entries(obj).sort((a,b)=>b[1]-a[1])}
+function renderChart(elId,data){const el=$(elId);if(!data.length){el.className='bar-list empty';el.textContent=elId==='expenseChart'?'Sem despesas neste mês.':'Sem receitas neste mês.';return}el.className='bar-list';const max=Math.max(...data.map(x=>x[1]));el.innerHTML=data.map(([cat,val])=>`<div class="bar"><span>${cat}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(4,val/max*100)}%"></div></div><span class="bar-value">${money(val)}</span></div>`).join('')}
+function render(){const list=filtered();const t=totals(list);$('incomeTotal').textContent=money(t.income);$('expenseTotal').textContent=money(t.expense);$('balanceTotal').textContent=money(t.income-t.expense);$('balanceTotal').className=t.income-t.expense<0?'negative':'positive';$('countTotal').textContent=t.count;renderChart('expenseChart',byCategory(list,'despesa'));renderChart('incomeChart',byCategory(list,'receita'));const tbody=$('transactionRows');tbody.innerHTML='';if(!list.length){tbody.innerHTML='<tr><td colspan="7">Nenhuma movimentação encontrada.</td></tr>';return}const tpl=$('rowTemplate');list.forEach(tr=>{const row=tpl.content.cloneNode(true);row.querySelector('.dateCell').textContent=tr.date.split('-').reverse().join('/');row.querySelector('.descCell').innerHTML=`<strong>${tr.description}</strong>${tr.note?`<br><small>${tr.note}</small>`:''}`;row.querySelector('.catCell').textContent=tr.category;row.querySelector('.accCell').textContent=tr.account||'-';row.querySelector('.typeCell').innerHTML=`<span class="pill ${tr.type}">${tr.type}</span>`;const val=row.querySelector('.valueCell');val.textContent=(tr.type==='despesa'?'- ':'+ ')+money(tr.amount);val.className+=' '+(tr.type==='despesa'?'value-expense':'value-income');row.querySelector('.deleteBtn').onclick=()=>{if(confirm('Excluir esta movimentação?')){state.transactions=state.transactions.filter(x=>x.id!==tr.id);save()}};tbody.appendChild(row)})}
+function exportCsv(){const rows=[['Data','Descrição','Categoria','Conta','Tipo','Valor','Observação'],...state.transactions.map(t=>[t.date,t.description,t.category,t.account,t.type,String(t.amount).replace('.',','),t.note])];const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');download(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),'minha-planilha.csv')}
+function exportJson(){download(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),'backup-minha-planilha.json')}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+function init(){document.documentElement.dataset.theme=state.theme||'light';$('date').value=today();$('monthFilter').value=monthOf(today());fillCategories();$('type').onchange=fillCategories;$('description').oninput=guess;$('toggleTheme').onclick=()=>setTheme((state.theme||'light')==='light'?'dark':'light');$('transactionForm').onsubmit=e=>{e.preventDefault();const amount=parseAmount($('amount').value);if(amount<=0)return alert('Digite um valor maior que zero.');const n=Math.max(1,Number($('installments').value)||1);const baseAmount=Number((amount/n).toFixed(2));for(let i=0;i<n;i++){state.transactions.push({id:Date.now()+i,type:$('type').value,date:addMonths($('date').value,i),description:n>1?`${$('description').value} (${i+1}/${n})`:$('description').value,amount:i===n-1?Number((amount-baseAmount*(n-1)).toFixed(2)):baseAmount,category:$('category').value,account:$('account').value||'Carteira',note:$('note').value})}e.target.reset();$('date').value=today();$('installments').value=1;fillCategories();save()};['monthFilter','search'].forEach(id=>$(id).oninput=render);$('resetFilter').onclick=()=>{$('monthFilter').value='';$('search').value='';render()};$('exportCsv').onclick=exportCsv;$('exportJson').onclick=exportJson;$('clearAll').onclick=()=>{if(confirm('Tem certeza? Isso apaga tudo deste navegador.')){state.transactions=[];save()}};$('importJson').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data.transactions))throw Error();state=data;save();alert('Backup importado!')}catch{alert('Arquivo inválido.')}};r.readAsText(f)};window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;$('installBtn').classList.add('hidden')}};if('serviceWorker'in navigator)navigator.serviceWorker.register('service-worker.js');render()}
+init();

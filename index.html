@@ -2,101 +2,125 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Finanças</title>
-  <meta name="theme-color" content="#6d5dfc" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Minha Planilha Financeira</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <aside class="sidebar">
-    <h1>💳 Finanças</h1>
-    <button class="nav active" data-page="dashboard">📊 Dashboard</button>
-    <button class="nav" data-page="transactions">📋 Transações</button>
-    <button class="nav" data-open-modal>➕ Adicionar</button>
-    <button class="nav" data-page="report">📄 Relatório</button>
-  </aside>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Controle financeiro</p>
+      <h1>Minha Planilha</h1>
+    </div>
+    <div class="top-actions">
+      <button id="toggleTheme" class="ghost" title="Modo claro/escuro">🌙</button>
+      <button id="installBtn" class="ghost hidden">Instalar</button>
+    </div>
+  </header>
 
-  <main class="main">
-    <header class="topbar">
-      <h2 id="monthTitle">Mês atual</h2>
-      <button class="primary" data-open-modal>+ Nova transação</button>
-    </header>
+  <main class="app">
+    <section class="panel form-panel">
+      <h2>Nova movimentação</h2>
+      <form id="transactionForm">
+        <div class="grid2">
+          <label>Tipo
+            <select id="type" required>
+              <option value="receita">Receita</option>
+              <option value="despesa">Despesa</option>
+            </select>
+          </label>
+          <label>Data
+            <input id="date" type="date" required />
+          </label>
+        </div>
+        <label>Descrição
+          <input id="description" placeholder="Ex: mercado, salário, uber..." autocomplete="off" required />
+        </label>
+        <div class="grid2">
+          <label>Valor
+            <input id="amount" inputmode="decimal" placeholder="0,00" required />
+          </label>
+          <label>Categoria
+            <select id="category" required></select>
+          </label>
+        </div>
+        <div class="grid2">
+          <label>Conta
+            <input id="account" placeholder="Nubank, Caixa, dinheiro..." />
+          </label>
+          <label>Parcelas
+            <input id="installments" type="number" min="1" max="60" value="1" />
+          </label>
+        </div>
+        <label>Observação
+          <input id="note" placeholder="Opcional" />
+        </label>
+        <button class="primary" type="submit">Salvar</button>
+      </form>
+    </section>
 
-    <section id="dashboard" class="page active">
+    <section class="panel dashboard">
+      <div class="dash-head">
+        <h2>Dashboard</h2>
+        <input id="monthFilter" type="month" />
+      </div>
       <div class="cards">
-        <div class="card accent"><span>Saldo atual</span><strong id="balance">R$ 0,00</strong></div>
-        <div class="card income"><span>Total receitas</span><strong id="incomeTotal">R$ 0,00</strong></div>
-        <div class="card expense"><span>Total despesas</span><strong id="expenseTotal">R$ 0,00</strong></div>
-        <div class="card"><span>Transações</span><strong id="txCount">0</strong></div>
+        <article><span>Receitas</span><strong id="incomeTotal">R$ 0,00</strong></article>
+        <article><span>Despesas</span><strong id="expenseTotal">R$ 0,00</strong></article>
+        <article><span>Saldo</span><strong id="balanceTotal">R$ 0,00</strong></article>
+        <article><span>Transações</span><strong id="countTotal">0</strong></article>
       </div>
-
-      <div class="grid two">
-        <article class="panel">
+      <div class="charts">
+        <div>
           <h3>Despesas por categoria</h3>
-          <div id="expenseCategories" class="category-list empty">Sem dados</div>
-        </article>
-        <article class="panel">
+          <div id="expenseChart" class="bar-list empty">Sem despesas neste mês.</div>
+        </div>
+        <div>
           <h3>Receitas por categoria</h3>
-          <div id="incomeCategories" class="category-list empty">Sem dados</div>
-        </article>
+          <div id="incomeChart" class="bar-list empty">Sem receitas neste mês.</div>
+        </div>
       </div>
     </section>
 
-    <section id="transactions" class="page">
-      <article class="panel">
-        <div class="panel-head">
-          <h3>Transações</h3>
-          <input id="search" placeholder="Buscar descrição ou categoria..." />
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th>Ações</th></tr></thead>
-            <tbody id="transactionsBody"></tbody>
-          </table>
-        </div>
-      </article>
+    <section class="panel tools">
+      <h2>Ferramentas</h2>
+      <div class="toolbar">
+        <input id="search" placeholder="Pesquisar por nome, categoria, conta..." />
+        <button id="exportCsv" class="ghost">Exportar Excel/CSV</button>
+        <button id="exportJson" class="ghost">Backup JSON</button>
+        <label class="ghost file-label">Importar backup<input id="importJson" type="file" accept="application/json" /></label>
+        <button id="clearAll" class="danger">Apagar tudo</button>
+      </div>
+      <p class="hint">Os dados ficam salvos no navegador. Para sincronizar PC + iPhone, é preciso configurar Firebase/Supabase depois.</p>
     </section>
 
-    <section id="report" class="page">
-      <article class="panel">
-        <div class="panel-head wrap">
-          <h3>Relatório mensal</h3>
-          <div class="filters">
-            <select id="reportMonth"></select>
-            <select id="reportYear"></select>
-            <button id="exportCsv">Exportar CSV</button>
-            <button id="importCsvBtn">Importar CSV</button>
-            <input id="importCsv" type="file" accept=".csv" hidden />
-            <button id="printBtn">Imprimir/PDF</button>
-            <button id="resetBtn" class="danger">Resetar</button>
-          </div>
-        </div>
-        <div class="cards small">
-          <div class="card income"><span>Receitas</span><strong id="reportIncome">R$ 0,00</strong></div>
-          <div class="card expense"><span>Despesas</span><strong id="reportExpense">R$ 0,00</strong></div>
-          <div class="card accent"><span>Resultado</span><strong id="reportResult">R$ 0,00</strong></div>
-        </div>
-        <div class="grid two">
-          <div><h4>Total receitas por categoria</h4><div id="reportIncomeCats" class="category-list empty">Sem dados</div></div>
-          <div><h4>Total despesas por categoria</h4><div id="reportExpenseCats" class="category-list empty">Sem dados</div></div>
-        </div>
-      </article>
+    <section class="panel table-panel">
+      <div class="dash-head">
+        <h2>Movimentações</h2>
+        <button id="resetFilter" class="ghost">Ver tudo</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Tipo</th><th>Valor</th><th></th></tr></thead>
+          <tbody id="transactionRows"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
-  <dialog id="modal">
-    <form id="txForm" method="dialog">
-      <div class="modal-head"><h3 id="modalTitle">Nova transação</h3><button type="button" id="closeModal">×</button></div>
-      <label>Data<input id="date" type="date" required /></label>
-      <label>Descrição<input id="description" required placeholder="Ex: mercado, salário, uber..." /></label>
-      <label>Tipo<select id="type"><option value="income">Receita</option><option value="expense">Despesa</option></select></label>
-      <label>Categoria<input id="category" list="categoryList" required placeholder="Automática pela descrição" /><datalist id="categoryList"></datalist></label>
-      <label>Valor (R$)<input id="amount" type="number" min="0.01" step="0.01" required /></label>
-      <button class="primary" type="submit">Salvar</button>
-    </form>
-  </dialog>
-
+  <template id="rowTemplate">
+    <tr>
+      <td data-label="Data" class="dateCell"></td>
+      <td data-label="Descrição" class="descCell"></td>
+      <td data-label="Categoria" class="catCell"></td>
+      <td data-label="Conta" class="accCell"></td>
+      <td data-label="Tipo" class="typeCell"></td>
+      <td data-label="Valor" class="valueCell"></td>
+      <td><button class="deleteBtn" title="Excluir">🗑️</button></td>
+    </tr>
+  </template>
   <script src="script.js"></script>
 </body>
 </html>
