@@ -2,125 +2,88 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0f172a" />
-  <title>Minha Planilha Financeira</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FinanceApp Pro</title>
+  <meta name="theme-color" content="#6d5dfc" />
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">Controle financeiro</p>
-      <h1>Minha Planilha</h1>
+  <div id="login" class="login-screen">
+    <div class="login-card">
+      <h1>💰 FinanceApp Pro</h1>
+      <p>Entre com Google para sincronizar seus dados no PC e celular.</p>
+      <button id="loginBtn" class="primary full">Entrar com Google</button>
     </div>
-    <div class="top-actions">
-      <button id="toggleTheme" class="ghost" title="Modo claro/escuro">🌙</button>
-      <button id="installBtn" class="ghost hidden">Instalar</button>
-    </div>
-  </header>
+  </div>
 
-  <main class="app">
-    <section class="panel form-panel">
-      <h2>Nova movimentação</h2>
-      <form id="transactionForm">
-        <div class="grid2">
-          <label>Tipo
-            <select id="type" required>
-              <option value="receita">Receita</option>
-              <option value="despesa">Despesa</option>
-            </select>
-          </label>
-          <label>Data
-            <input id="date" type="date" required />
-          </label>
-        </div>
-        <label>Descrição
-          <input id="description" placeholder="Ex: mercado, salário, uber..." autocomplete="off" required />
-        </label>
-        <div class="grid2">
-          <label>Valor
-            <input id="amount" inputmode="decimal" placeholder="0,00" required />
-          </label>
-          <label>Categoria
-            <select id="category" required></select>
-          </label>
-        </div>
-        <div class="grid2">
-          <label>Conta
-            <input id="account" placeholder="Nubank, Caixa, dinheiro..." />
-          </label>
-          <label>Parcelas
-            <input id="installments" type="number" min="1" max="60" value="1" />
-          </label>
-        </div>
-        <label>Observação
-          <input id="note" placeholder="Opcional" />
-        </label>
-        <button class="primary" type="submit">Salvar</button>
-      </form>
-    </section>
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <h2>💰 Finanças</h2>
+      <button data-page="dashboard" class="nav active">Dashboard</button>
+      <button data-page="transactions" class="nav">Transações</button>
+      <button data-page="cards" class="nav">Cartões</button>
+      <button data-page="bills" class="nav">A pagar/receber</button>
+      <button data-page="reports" class="nav">Relatórios</button>
+      <button data-page="settings" class="nav">Configurações</button>
+      <button id="themeBtn" class="nav">🌙 Tema</button>
+      <button id="logoutBtn" class="nav danger">Sair</button>
+    </aside>
 
-    <section class="panel dashboard">
-      <div class="dash-head">
-        <h2>Dashboard</h2>
-        <input id="monthFilter" type="month" />
-      </div>
-      <div class="cards">
-        <article><span>Receitas</span><strong id="incomeTotal">R$ 0,00</strong></article>
-        <article><span>Despesas</span><strong id="expenseTotal">R$ 0,00</strong></article>
-        <article><span>Saldo</span><strong id="balanceTotal">R$ 0,00</strong></article>
-        <article><span>Transações</span><strong id="countTotal">0</strong></article>
-      </div>
-      <div class="charts">
+    <main class="content">
+      <header class="topbar">
         <div>
-          <h3>Despesas por categoria</h3>
-          <div id="expenseChart" class="bar-list empty">Sem despesas neste mês.</div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <p id="userInfo"></p>
         </div>
-        <div>
-          <h3>Receitas por categoria</h3>
-          <div id="incomeChart" class="bar-list empty">Sem receitas neste mês.</div>
+        <button id="openModalBtn" class="primary">+ Nova transação</button>
+      </header>
+
+      <section id="dashboard" class="page active-page">
+        <div class="cards-grid">
+          <div class="stat"><span>Saldo atual</span><strong id="balance">R$ 0,00</strong></div>
+          <div class="stat income"><span>Receitas</span><strong id="income">R$ 0,00</strong></div>
+          <div class="stat expense"><span>Despesas</span><strong id="expense">R$ 0,00</strong></div>
+          <div class="stat"><span>Transações</span><strong id="countTx">0</strong></div>
         </div>
-      </div>
-    </section>
+        <div class="panel-grid">
+          <div class="panel"><h3>Despesas por categoria</h3><div id="expenseCats"></div></div>
+          <div class="panel"><h3>Receitas por categoria</h3><div id="incomeCats"></div></div>
+        </div>
+      </section>
 
-    <section class="panel tools">
-      <h2>Ferramentas</h2>
-      <div class="toolbar">
-        <input id="search" placeholder="Pesquisar por nome, categoria, conta..." />
-        <button id="exportCsv" class="ghost">Exportar Excel/CSV</button>
-        <button id="exportJson" class="ghost">Backup JSON</button>
-        <label class="ghost file-label">Importar backup<input id="importJson" type="file" accept="application/json" /></label>
-        <button id="clearAll" class="danger">Apagar tudo</button>
-      </div>
-      <p class="hint">Os dados ficam salvos no navegador. Para sincronizar PC + iPhone, é preciso configurar Firebase/Supabase depois.</p>
-    </section>
+      <section id="transactions" class="page">
+        <div class="toolbar">
+          <input id="searchInput" placeholder="Buscar por descrição, categoria..." />
+          <input id="monthInput" type="month" />
+          <button id="exportCsvBtn">Exportar CSV</button>
+          <button id="backupBtn">Backup JSON</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor</th><th></th></tr></thead><tbody id="txTable"></tbody></table></div>
+      </section>
 
-    <section class="panel table-panel">
-      <div class="dash-head">
-        <h2>Movimentações</h2>
-        <button id="resetFilter" class="ghost">Ver tudo</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Tipo</th><th>Valor</th><th></th></tr></thead>
-          <tbody id="transactionRows"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+      <section id="cards" class="page"><div class="panel"><h3>Cartões</h3><p>Cadastre compras parceladas como transação e marque a quantidade de parcelas.</p><div id="installmentsList"></div></div></section>
+      <section id="bills" class="page"><div class="panel"><h3>Contas a pagar/receber</h3><p>Use data futura e tipo receita/despesa para controlar próximos lançamentos.</p><div id="futureList"></div></div></section>
+      <section id="reports" class="page"><div class="panel"><h3>Resumo mensal</h3><div id="monthlyReport"></div></div></section>
+      <section id="settings" class="page"><div class="panel"><h3>Configurações</h3><p>Dados sincronizados via Firebase Firestore.</p><p><b>Importante:</b> cada conta Google vê apenas os próprios lançamentos depois que você aplicar as regras de segurança.</p></div></section>
+    </main>
+  </div>
 
-  <template id="rowTemplate">
-    <tr>
-      <td data-label="Data" class="dateCell"></td>
-      <td data-label="Descrição" class="descCell"></td>
-      <td data-label="Categoria" class="catCell"></td>
-      <td data-label="Conta" class="accCell"></td>
-      <td data-label="Tipo" class="typeCell"></td>
-      <td data-label="Valor" class="valueCell"></td>
-      <td><button class="deleteBtn" title="Excluir">🗑️</button></td>
-    </tr>
-  </template>
-  <script src="script.js"></script>
+  <dialog id="txModal">
+    <form method="dialog" class="modal-card" id="txForm">
+      <h2>Nova transação</h2>
+      <label>Tipo<select id="type"><option value="expense">Despesa</option><option value="income">Receita</option></select></label>
+      <label>Descrição<input id="description" required placeholder="Ex: mercado, salário, uber" /></label>
+      <label>Categoria<input id="category" required placeholder="Automático" /></label>
+      <label>Valor<input id="amount" required type="number" step="0.01" min="0" /></label>
+      <label>Data<input id="date" type="date" required /></label>
+      <label>Conta<input id="account" placeholder="Nubank, Caixa, dinheiro..." /></label>
+      <label>Parcelas<input id="installments" type="number" min="1" value="1" /></label>
+      <label class="check"><input id="recurring" type="checkbox" /> Recorrente mensal</label>
+      <div class="modal-actions"><button type="button" id="closeModalBtn">Cancelar</button><button class="primary" type="submit">Salvar</button></div>
+    </form>
+  </dialog>
+
+  <script type="module" src="script.js"></script>
 </body>
 </html>

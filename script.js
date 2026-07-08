@@ -1,24 +1,70 @@
-const KEY='finance-app-v3';
-const categories={receita:['Salário','PIX recebido','Freelance','Vendas','Investimentos','Reembolso','Outras receitas'],despesa:['Alimentação','Transporte','Moradia','Saúde','Educação','Lazer','Compras','Assinaturas','Contas','Cartão','Família','Outras despesas']};
-const rules=[['salario|salário|pagamento|ordenado','Salário','receita'],['pix|transferencia recebida|recebi','PIX recebido','receita'],['freela|freelance|serviço|servico','Freelance','receita'],['mercado|supermercado|atacado|carrefour|assai|assaí|bompreço|bompreco|ifood|restaurante|lanche|pizza|padaria|comida|coca','Alimentação','despesa'],['uber|99|ônibus|onibus|gasolina|combustivel|combustível|posto|moto|mecânico|mecanico|embreagem','Transporte','despesa'],['aluguel|condominio|condomínio|casa|energia|celpe|neoenergia|água|agua|internet|wifi','Moradia','despesa'],['farmacia|farmácia|remedio|remédio|consulta|medico|médico|hospital','Saúde','despesa'],['netflix|spotify|prime|disney|game pass|xbox|assinatura','Assinaturas','despesa'],['shopee|mercado livre|amazon|roupa|maquiagem|sandalia|sandália|shopping','Compras','despesa'],['cartao|cartão|fatura','Cartão','despesa'],['cinema|show|festa|jogo|lazer','Lazer','despesa'],['familia|família|namorada|ajuda','Família','despesa']];
-let state=load();let deferredPrompt=null;
-const $=id=>document.getElementById(id);const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-function load(){try{return JSON.parse(localStorage.getItem(KEY))||{transactions:[],theme:'light'}}catch{return{transactions:[],theme:'light'}}}
-function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
-function parseAmount(v){return Number(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0}
-function today(){return new Date().toISOString().slice(0,10)}
-function monthOf(date){return String(date||'').slice(0,7)}
-function addMonths(dateStr,n){const d=new Date(dateStr+'T12:00:00');d.setMonth(d.getMonth()+n);return d.toISOString().slice(0,10)}
-function fillCategories(){const type=$('type').value;$('category').innerHTML=categories[type].map(c=>`<option>${c}</option>`).join('')}
-function guess(){const txt=$('description').value.toLowerCase();for(const [regex,cat,type] of rules){if(new RegExp(regex,'i').test(txt)){if($('type').value!==type){$('type').value=type;fillCategories()}$('category').value=cat;return}}}
-function setTheme(t){state.theme=t;document.documentElement.dataset.theme=t;$('toggleTheme').textContent=t==='dark'?'☀️':'🌙';localStorage.setItem(KEY,JSON.stringify(state))}
-function filtered(){const m=$('monthFilter').value;const q=$('search').value.trim().toLowerCase();return state.transactions.filter(t=>(!m||monthOf(t.date)===m)&&(!q||[t.description,t.category,t.account,t.note,t.type].join(' ').toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id)}
-function totals(list){return list.reduce((a,t)=>{a.count++; if(t.type==='receita')a.income+=t.amount;else a.expense+=t.amount; return a},{income:0,expense:0,count:0})}
-function byCategory(list,type){const obj={};list.filter(t=>t.type===type).forEach(t=>obj[t.category]=(obj[t.category]||0)+t.amount);return Object.entries(obj).sort((a,b)=>b[1]-a[1])}
-function renderChart(elId,data){const el=$(elId);if(!data.length){el.className='bar-list empty';el.textContent=elId==='expenseChart'?'Sem despesas neste mês.':'Sem receitas neste mês.';return}el.className='bar-list';const max=Math.max(...data.map(x=>x[1]));el.innerHTML=data.map(([cat,val])=>`<div class="bar"><span>${cat}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(4,val/max*100)}%"></div></div><span class="bar-value">${money(val)}</span></div>`).join('')}
-function render(){const list=filtered();const t=totals(list);$('incomeTotal').textContent=money(t.income);$('expenseTotal').textContent=money(t.expense);$('balanceTotal').textContent=money(t.income-t.expense);$('balanceTotal').className=t.income-t.expense<0?'negative':'positive';$('countTotal').textContent=t.count;renderChart('expenseChart',byCategory(list,'despesa'));renderChart('incomeChart',byCategory(list,'receita'));const tbody=$('transactionRows');tbody.innerHTML='';if(!list.length){tbody.innerHTML='<tr><td colspan="7">Nenhuma movimentação encontrada.</td></tr>';return}const tpl=$('rowTemplate');list.forEach(tr=>{const row=tpl.content.cloneNode(true);row.querySelector('.dateCell').textContent=tr.date.split('-').reverse().join('/');row.querySelector('.descCell').innerHTML=`<strong>${tr.description}</strong>${tr.note?`<br><small>${tr.note}</small>`:''}`;row.querySelector('.catCell').textContent=tr.category;row.querySelector('.accCell').textContent=tr.account||'-';row.querySelector('.typeCell').innerHTML=`<span class="pill ${tr.type}">${tr.type}</span>`;const val=row.querySelector('.valueCell');val.textContent=(tr.type==='despesa'?'- ':'+ ')+money(tr.amount);val.className+=' '+(tr.type==='despesa'?'value-expense':'value-income');row.querySelector('.deleteBtn').onclick=()=>{if(confirm('Excluir esta movimentação?')){state.transactions=state.transactions.filter(x=>x.id!==tr.id);save()}};tbody.appendChild(row)})}
-function exportCsv(){const rows=[['Data','Descrição','Categoria','Conta','Tipo','Valor','Observação'],...state.transactions.map(t=>[t.date,t.description,t.category,t.account,t.type,String(t.amount).replace('.',','),t.note])];const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');download(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),'minha-planilha.csv')}
-function exportJson(){download(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),'backup-minha-planilha.json')}
-function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
-function init(){document.documentElement.dataset.theme=state.theme||'light';$('date').value=today();$('monthFilter').value=monthOf(today());fillCategories();$('type').onchange=fillCategories;$('description').oninput=guess;$('toggleTheme').onclick=()=>setTheme((state.theme||'light')==='light'?'dark':'light');$('transactionForm').onsubmit=e=>{e.preventDefault();const amount=parseAmount($('amount').value);if(amount<=0)return alert('Digite um valor maior que zero.');const n=Math.max(1,Number($('installments').value)||1);const baseAmount=Number((amount/n).toFixed(2));for(let i=0;i<n;i++){state.transactions.push({id:Date.now()+i,type:$('type').value,date:addMonths($('date').value,i),description:n>1?`${$('description').value} (${i+1}/${n})`:$('description').value,amount:i===n-1?Number((amount-baseAmount*(n-1)).toFixed(2)):baseAmount,category:$('category').value,account:$('account').value||'Carteira',note:$('note').value})}e.target.reset();$('date').value=today();$('installments').value=1;fillCategories();save()};['monthFilter','search'].forEach(id=>$(id).oninput=render);$('resetFilter').onclick=()=>{$('monthFilter').value='';$('search').value='';render()};$('exportCsv').onclick=exportCsv;$('exportJson').onclick=exportJson;$('clearAll').onclick=()=>{if(confirm('Tem certeza? Isso apaga tudo deste navegador.')){state.transactions=[];save()}};$('importJson').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data.transactions))throw Error();state=data;save();alert('Backup importado!')}catch{alert('Arquivo inválido.')}};r.readAsText(f)};window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;$('installBtn').classList.add('hidden')}};if('serviceWorker'in navigator)navigator.serviceWorker.register('service-worker.js');render()}
-init();
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBIacwH9WInAHEeh_60jXeX9wLHk1RfpRQ",
+  authDomain: "planilha-d6258.firebaseapp.com",
+  projectId: "planilha-d6258",
+  storageBucket: "planilha-d6258.firebasestorage.app",
+  messagingSenderId: "993391235536",
+  appId: "1:993391235536:web:923a9c601cf38b4703a9d5"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+let user = null, transactions = [], unsubscribe = null;
+
+const $ = id => document.getElementById(id);
+const money = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const today = () => new Date().toISOString().slice(0,10);
+const monthNow = () => new Date().toISOString().slice(0,7);
+
+const categoryRules = [
+  ['salario|salário|pagamento|pix recebido|freela|renda','Salário'],
+  ['mercado|supermercado|atacadao|atacadão|carrefour|assai|assaí|comida|ifood|lanche|restaurante','Alimentação'],
+  ['uber|99|ônibus|onibus|gasolina|combustivel|combustível|posto|moto|transporte','Transporte'],
+  ['farmacia|farmácia|remedio|remédio|consulta|medico|médico|saude|saúde','Saúde'],
+  ['netflix|spotify|prime|disney|hbo|assinatura|game pass|xbox','Assinaturas'],
+  ['shopee|mercado livre|amazon|roupa|maquiagem|presente|compra','Compras'],
+  ['aluguel|energia|luz|agua|água|internet|telefone|casa','Casa'],
+  ['aposta|bet|casino|cassino','Apostas'],
+  ['academia|curso|faculdade|estudo','Educação']
+];
+function guessCategory(text){ const s=(text||'').toLowerCase(); for(const [rx,cat] of categoryRules){ if(new RegExp(rx).test(s)) return cat; } return 'Outros'; }
+function filtered(){ const term=$('searchInput').value.toLowerCase(); const m=$('monthInput').value; return transactions.filter(t=>(!m||t.date?.startsWith(m)) && (!term||JSON.stringify(t).toLowerCase().includes(term))); }
+function groupByCategory(list,type){ const obj={}; list.filter(t=>t.type===type).forEach(t=>obj[t.category]=(obj[t.category]||0)+Number(t.amount)); return obj; }
+function renderCat(el,obj){ const rows=Object.entries(obj).sort((a,b)=>b[1]-a[1]); el.innerHTML = rows.length ? rows.map(([k,v])=>`<div class="cat-row"><span>${k}</span><b>${money(v)}</b></div>`).join('') : '<p>Sem dados</p>'; }
+function render(){
+  const list=filtered();
+  const inc=list.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0);
+  const exp=list.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0);
+  $('income').textContent=money(inc); $('expense').textContent=money(exp); $('balance').textContent=money(inc-exp); $('countTx').textContent=list.length;
+  renderCat($('expenseCats'), groupByCategory(list,'expense')); renderCat($('incomeCats'), groupByCategory(list,'income'));
+  $('txTable').innerHTML = list.map(t=>`<tr><td>${t.date||''}</td><td class="${t.type==='income'?'positive':'negative'}">${t.type==='income'?'Receita':'Despesa'}</td><td>${t.description}</td><td>${t.category}</td><td>${t.account||'-'}</td><td>${money(t.amount)}</td><td><button data-del="${t.id}">Excluir</button></td></tr>`).join('') || '<tr><td colspan="7">Nenhuma transação.</td></tr>';
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>deleteDoc(doc(db,'users',user.uid,'transactions',b.dataset.del)));
+  $('installmentsList').innerHTML = list.filter(t=>Number(t.installments)>1).map(t=>`<div class="cat-row"><span>${t.description} (${t.installments}x)</span><b>${money(t.amount)}</b></div>`).join('') || '<p>Sem compras parceladas.</p>';
+  $('futureList').innerHTML = list.filter(t=>t.date>today()).map(t=>`<div class="cat-row"><span>${t.date} - ${t.description}</span><b>${money(t.amount)}</b></div>`).join('') || '<p>Sem lançamentos futuros.</p>';
+  const months={}; transactions.forEach(t=>{const m=(t.date||'').slice(0,7); if(!m)return; months[m]??={income:0,expense:0}; months[m][t.type]+=Number(t.amount)});
+  $('monthlyReport').innerHTML = Object.entries(months).sort().reverse().map(([m,v])=>`<div class="cat-row"><span>${m}</span><b>Receitas ${money(v.income)} | Despesas ${money(v.expense)} | Saldo ${money(v.income-v.expense)}</b></div>`).join('') || '<p>Sem dados.</p>';
+}
+
+$('loginBtn').onclick=()=>signInWithPopup(auth,provider);
+$('logoutBtn').onclick=()=>signOut(auth);
+$('openModalBtn').onclick=()=>{ $('txForm').reset(); $('date').value=today(); $('installments').value=1; $('txModal').showModal(); };
+$('closeModalBtn').onclick=()=>$('txModal').close();
+$('description').addEventListener('input',()=>{ if(!$('category').dataset.manual) $('category').value=guessCategory($('description').value); });
+$('category').addEventListener('input',()=> $('category').dataset.manual='1');
+$('searchInput').oninput=render; $('monthInput').oninput=render; $('monthInput').value=monthNow();
+document.querySelectorAll('.nav[data-page]').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.page').forEach(p=>p.classList.remove('active-page'));$(btn.dataset.page).classList.add('active-page');$('pageTitle').textContent=btn.textContent;});
+$('themeBtn').onclick=()=>{document.body.classList.toggle('light'); localStorage.setItem('theme',document.body.classList.contains('light')?'light':'dark')}; if(localStorage.theme==='light') document.body.classList.add('light');
+$('txForm').onsubmit=async e=>{ e.preventDefault(); const tx={type:$('type').value,description:$('description').value.trim(),category:$('category').value.trim()||guessCategory($('description').value),amount:Number($('amount').value),date:$('date').value,account:$('account').value.trim(),installments:Number($('installments').value||1),recurring:$('recurring').checked,createdAt:serverTimestamp()}; await addDoc(collection(db,'users',user.uid,'transactions'),tx); $('txModal').close(); };
+$('exportCsvBtn').onclick=()=>{ const rows=[['data','tipo','descricao','categoria','conta','valor','parcelas'],...filtered().map(t=>[t.date,t.type,t.description,t.category,t.account||'',t.amount,t.installments||1])]; download('transacoes.csv', rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(';')).join('\n')); };
+$('backupBtn').onclick=()=>download('backup-financeapp.json', JSON.stringify(transactions,null,2));
+function download(name,content){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'}));a.download=name;a.click();}
+
+onAuthStateChanged(auth,u=>{ user=u; if(unsubscribe) unsubscribe(); if(!u){$('login').classList.remove('hidden');$('app').classList.add('hidden');return;} $('login').classList.add('hidden');$('app').classList.remove('hidden');$('userInfo').textContent=u.email; const q=query(collection(db,'users',u.uid,'transactions'),orderBy('date','desc')); unsubscribe=onSnapshot(q,snap=>{transactions=snap.docs.map(d=>({id:d.id,...d.data()})); render();}); });
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js');
